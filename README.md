@@ -4,8 +4,9 @@ A free weather app that runs entirely in the browser. No API keys, no server, no
 
 - Forecasts from [Open-Meteo](https://open-meteo.com/) (CC BY 4.0)
 - Severe weather alerts for US locations from the [National Weather Service](https://www.weather.gov/)
-- A cell-based layout where one selected hour drives everything: drag the main card to move through time, tap any hour, day, chart or 3D block
-- A 3D field of the next 10 days, one block per hour, switchable between temperature, feels-like, rain, wind, humidity, UV, clouds and pressure
+- Big 3D temperature and conditions that lean toward your finger and move with the weather: sun rays, drifting clouds, rain that splashes on the numbers, snow that settles on them, lightning, fog and wind
+- A one-screen iPhone layout: drag the main card to move through time; drag the date slider on the Days tab, tap any hour, day, 3D block or metric cell, and detail opens in a bottom sheet
+- A 3D field of the next 10 days that sways gently on its own and tilts up to 20° each way when you drag it, one block per hour, switchable between temperature, feels-like, rain, wind, humidity, UV, clouds and pressure
 - Current conditions, a 2-hour rain outlook in 15-minute steps, 24-hour and 10-day forecasts, air quality
 - City search, saved cities, use-my-location, °F/°C, and a forecast model picker (ECMWF, GFS, ICON, GEM)
 
