@@ -87,7 +87,17 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .when button{border:1px solid var(--ink);background:none;border-radius:999px;font-size:11.5px;padding:1px 9px}
 .hrow{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:6px}
 .cside{min-width:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:2px}
-.hinfo{min-width:0;display:flex;flex-direction:column;gap:0;margin-top:2px}
+.hfoot{display:flex;align-items:flex-end;gap:8px;margin-top:2px}
+.hinfo{min-width:0;flex:1;display:flex;flex-direction:column;gap:0}
+.lnk{cursor:pointer;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
+button.lnk{border:0;background:none;padding:0;font:inherit;color:inherit}
+.morebtn{flex:none;display:inline-flex;align-items:center;gap:3px;border:1px solid color-mix(in srgb,var(--ink) 30%,transparent);background:color-mix(in srgb,var(--surface) 45%,transparent);border-radius:999px;font-size:11.5px;font-weight:600;padding:3px 8px 3px 11px}
+.morebtn svg{width:13px;height:13px;transition:transform .3s}
+.morebtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+/* the extra readings fold away; See more opens them */
+.more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.2,.8,.2,1)}
+.more.open{grid-template-rows:1fr}
+.more>.clip{min-height:0;overflow:hidden}
 
 /* 3D type: stacked copies of the text pushed back in Z make the extrusion; the stack tilts with your finger and moves with the weather */
 .t3d{perspective:520px;perspective-origin:50% 40%}
@@ -160,7 +170,7 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 @keyframes flake{0%{transform:translateY(-2px);opacity:0}30%{opacity:1}100%{transform:translateY(2.5px);opacity:0}}
 @keyframes bolt{0%,58%,64%,70%,100%{opacity:1}61%,67%{opacity:.1}}
 /* short screens (iPhone SE in Safari): tighter now-card so everything still fits */
-@media (max-height:620px){.temp{font-size:68px}.cond{font-size:20px}.x3d.ic svg{width:42px;height:42px}#hrain{display:none}.hero .m{height:33px}.dock{margin-top:5px;padding-top:4px}}
+@media (max-height:620px){.temp{font-size:68px}.cond{font-size:20px}.x3d.ic svg{width:42px;height:42px}#hrain{display:none}.hero .m{height:30px}.dock{margin-top:5px;padding-top:3px}}
 @media (prefers-reduced-motion:reduce){.hero *,.hero .x3d.txt .face{animation:none!important}.tilt{transition:none}}
 .meta{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta b{color:var(--ink);font-weight:600}
@@ -176,7 +186,9 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .stage{flex:1;min-height:0;position:relative;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
 .stage:active{cursor:grabbing}
 .stage canvas{display:block;width:100%!important;height:100%!important}
-.fread{position:absolute;left:10px;right:10px;bottom:6px;font-size:11.5px;color:var(--muted);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fread{position:absolute;left:10px;right:10px;bottom:6px;font-size:11.5px;color:var(--muted);pointer-events:none;}
+.fread .lnk{pointer-events:auto;color:inherit}
+.fread{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* hours / days strip */
 .strip{flex:none;padding:6px 0 6px}
@@ -208,11 +220,12 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .col.now .t{color:var(--accent);font-weight:600}
 
 /* metric dock */
-.dock{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px 4px;margin-top:8px;padding-top:6px;border-top:1px solid var(--ink);border-top-color:color-mix(in srgb,var(--ink) 18%,transparent)}
+.dock{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px 4px;margin-top:8px;padding-top:6px;border-top:1px solid var(--ink);border-top-color:color-mix(in srgb,var(--ink) 18%,transparent)}
+.dock .m{grid-column:span 3}.dock .m.w{grid-column:span 4}
 .m{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;height:40px;padding:0 6px;border:0;background:none;border-radius:10px;text-align:left;cursor:pointer;transition:transform .15s,background .15s}
 .m:active{transform:scale(.96)}
 .m .label{font-size:9px;letter-spacing:.06em;white-space:nowrap}
-.m .val{font-family:var(--f-mono);font-size:15px;white-space:nowrap;overflow:hidden;max-width:100%}
+.m .val{font-family:var(--f-mono);font-size:16px;white-space:nowrap;overflow:hidden;max-width:100%}
 .m .val small{font-size:10px;color:var(--muted);margin-left:1px}
 .m.on{background:color-mix(in srgb,var(--ink) 12%,transparent)}
 .m.pop{animation:pop .5s ease}
@@ -286,8 +299,11 @@ select{height:36px;border-radius:10px;border:1px solid var(--line);background:va
         <div class="t3d" style="max-width:100%"><div class="tilt"><div class="anim"><div class="cond" id="cond">Loading</div></div></div></div>
       </div>
     </div>
-    <div class="hinfo"><div class="meta" id="hmeta"></div><div class="meta" id="hrain"></div></div>
-    <nav class="dock" id="dock" aria-label="Details"></nav>
+    <div class="hfoot">
+      <div class="hinfo"><div class="meta" id="hmeta"></div><div class="meta lnk" id="hrain" data-sheet="rain" role="button" tabindex="0"></div></div>
+      <button type="button" class="morebtn" id="moreBtn" aria-expanded="false" aria-controls="more"><span>See more</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
+    <div class="more" id="more" inert><div class="clip"><nav class="dock" id="dock" aria-label="More details"></nav></div></div>
   </section>
 
   <section class="cell field" id="fieldCard">
@@ -342,8 +358,14 @@ window.IsobarField=(function(){
   const mat=new THREE.MeshStandardMaterial({roughness:.62,metalness:0});
   const mesh=new THREE.InstancedMesh(geo,mat,N);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  {const c0=new THREE.Color(0x8a969d);for(let i=0;i<N;i++)mesh.setColorAt(i,c0)}
-  scene.add(mesh);
+  /* a see-through twin: hours before the selected time move here at 20% opacity, so the rows in front
+     are carved away and the selected day and the days behind it stay visible */
+  const ghostMat=new THREE.MeshStandardMaterial({roughness:.62,metalness:0,transparent:true,opacity:.2,depthWrite:false});
+  const ghost=new THREE.InstancedMesh(geo,ghostMat,N);
+  ghost.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const HIDE=new THREE.Matrix4().makeScale(1e-6,1e-6,1e-6);
+  {const c0=new THREE.Color(0x8a969d);for(let i=0;i<N;i++){mesh.setColorAt(i,c0);ghost.setColorAt(i,c0);ghost.setMatrixAt(i,HIDE)}}
+  scene.add(mesh);scene.add(ghost);
   const floorMat=new THREE.MeshBasicMaterial({transparent:true,opacity:.6});
   const FW=COLS*PX+1.2,FD=ROWS+1.2;
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(FW,FD),floorMat);
@@ -417,9 +439,10 @@ window.IsobarField=(function(){
       if(i<nowIdx)col.lerp(bg,.55);
       if(focusDay>=0&&Math.floor(i/COLS)!==focusDay)col.lerp(bg,.6);
       if(i===sel)col.copy(ink);
-      mesh.setColorAt(i,col);
+      mesh.setColorAt(i,col);ghost.setColorAt(i,col);
     }
     if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+    if(ghost.instanceColor)ghost.instanceColor.needsUpdate=true;
     if(nowIdx>=0){nowMark.visible=true;nowMark.position.x=X(nowIdx);nowMark.position.z=Z(nowIdx)}else nowMark.visible=false;
   }
   function wave(kind){
@@ -520,7 +543,8 @@ window.IsobarField=(function(){
     const r=stage.getBoundingClientRect();
     ndc.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
     ray.setFromCamera(ndc,cam);
-    const hit=ray.intersectObject(mesh);
+    let hit=ray.intersectObject(mesh);          // solid blocks first, so you can tap through the carved-away rows
+    if(!hit.length)hit=ray.intersectObject(ghost);
     return hit.length&&hit[0].instanceId!=null?hit[0].instanceId:-1;
   }
   const release=()=>{yawT=clamp(yawT,YMIN,YMAX);elevT=clamp(elevT,EMIN,EMAX);kick()};
@@ -579,9 +603,11 @@ window.IsobarField=(function(){
       dummy.position.set(X(i),0,Z(i));
       dummy.rotation.set(rx,0,rz);
       dummy.scale.set(.95,Math.max(.03,h[i]*(1+wig)+(i===sel?.25:0)),.8);
-      dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);
+      dummy.updateMatrix();
+      const past=sel>=0&&i<sel;
+      mesh.setMatrixAt(i,past?HIDE:dummy.matrix);ghost.setMatrixAt(i,past?dummy.matrix:HIDE);
     }
-    mesh.instanceMatrix.needsUpdate=true;
+    mesh.instanceMatrix.needsUpdate=true;ghost.instanceMatrix.needsUpdate=true;
     if(storm&&ambient){if(t>nextFlash){flash.intensity=2.2;nextFlash=t+4+Math.random()*6}flash.intensity*=.86;busy=true}
     else flash.intensity=0;
     const animating=busy||Math.abs(yawT-yaw)>.001||Math.abs(elevT-elev)>.001||sway>0||rainAmt.some(x=>x>0)||swayAmt>.001||Math.abs(distT-dist)>.01;
@@ -765,7 +791,7 @@ const METRICS=[
   {id:"wind",label:"Wind",title:"Wind",mode:"wind",k:"wind_speed_10m",chart:"line",
     s:i=>`${r(at("wind_speed_10m",i))}<small>${dir(at("wind_direction_10m",i))}</small>`,v:i=>`${r(at("wind_speed_10m",i))}<small>${F()?"mph":"km/h"}</small>${compass(at("wind_direction_10m",i))}`,
     n:i=>`From the ${dir(at("wind_direction_10m",i))}, gusting to ${r(at("wind_gusts_10m",i))} ${F()?"mph":"km/h"}.`},
-  {id:"humidity",label:"Humid",title:"Humidity",mode:"humidity",k:"relative_humidity_2m",chart:"line",
+  {id:"humidity",label:"Humidity",title:"Humidity",mode:"humidity",k:"relative_humidity_2m",chart:"line",
     s:i=>`${r(at("relative_humidity_2m",i))}<small>%</small>`,v:i=>`${r(at("relative_humidity_2m",i))}<small>%</small>`,n:i=>`Dew point ${r(at("dew_point_2m",i))}°.`},
   {id:"uv",label:"UV",title:"UV index",mode:"uv",k:"uv_index",chart:"bars",
     s:i=>`${r(at("uv_index",i))}`,v:i=>`${r(at("uv_index",i))}`,
@@ -773,11 +799,11 @@ const METRICS=[
   {id:"cloud",label:"Clouds",title:"Cloud cover",mode:"cloud",k:"cloud_cover",chart:"bars",
     s:i=>`${r(at("cloud_cover",i))}<small>%</small>`,v:i=>`${r(at("cloud_cover",i))}<small>%</small>`,
     n:i=>{const c=at("cloud_cover",i);return c==null?"":c<20?"Mostly clear sky.":c<60?"Some clouds.":c<90?"Mostly cloudy.":"Overcast."}},
-  {id:"pressure",label:"Press",title:"Pressure",mode:"pressure",k:"pressure_msl",chart:"line",
+  {id:"pressure",label:"Pressure",title:"Pressure",mode:"pressure",k:"pressure_msl",chart:"line",
     s:i=>{const p=at("pressure_msl",i);return p==null?"--":F()?(p*.02953).toFixed(2):`${Math.round(p)}`},
     v:i=>{const p=at("pressure_msl",i);return p==null?"--":F()?`${(p*.02953).toFixed(2)}<small>inHg</small>`:`${Math.round(p)}<small>hPa</small>`},
     n:i=>{const a=at("pressure_msl",i),b=V.d.hourly.pressure_msl[Math.max(0,i-3)];if(a==null||b==null)return"At sea level.";const dd=a-b;return Math.abs(dd)<.6?"Steady.":dd>0?"Rising, which often means clearing.":"Falling, so a change is likely."}},
-  {id:"visibility",label:"Vis",title:"Visibility",mode:"visibility",k:"visibility",chart:"line",
+  {id:"visibility",label:"Visibility",title:"Visibility",mode:"visibility",k:"visibility",chart:"line",
     s:i=>{const v=visNum(visM(i));return v==null?"--":`${v.toFixed(v<10?1:0)}<small>${F()?"mi":"km"}</small>`},
     v:i=>{const v=visNum(visM(i));return v==null?"--":`${v.toFixed(v<10?1:0)}<small>${F()?"mi":"km"}</small>`},
     n:i=>{const m=visM(i);return m==null?"":m<1000?"Fog. Take it slow on the road.":m<5000?"Hazy.":m<10000?"Fair.":"Clear view."}},
@@ -786,8 +812,16 @@ const METRICS=[
   {id:"sun",label:"Sunset",title:"Sun",
     s:i=>{const ss=sunsetOf(i);return ss?clock(ss).replace(/\s?([AP])M/i,(m,x)=>`<small>${x.toLowerCase()}</small>`):"--"}}
 ];
+/* the See more grid: 4 across, then 3 wider. Feels, rain and wind aren't here because the now-card and the
+   3D readout already show them; tap those to open their detail */
+const GRID=[["humidity"],["uv"],["cloud"],["air"],["pressure","w"],["visibility","w"],["sun","w"]];
 function buildDock(){
-  $("#dock").innerHTML=METRICS.map(m=>`<button type="button" class="m" id="m-${m.id}" data-id="${m.id}"><span class="label">${m.label}</span><span class="val" id="mv-${m.id}">--</span></button>`).join("");
+  $("#dock").innerHTML=GRID.map(([id,w])=>{const m=METRICS.find(x=>x.id===id);
+    return `<button type="button" class="m${w?" w":""}" id="m-${m.id}" data-id="${m.id}"><span class="label">${m.label}</span><span class="val" id="mv-${m.id}">--</span></button>`}).join("");
+}
+function setMore(open){
+  const mo=$("#more"),b=$("#moreBtn");mo.classList.toggle("open",open);mo.inert=!open;
+  b.setAttribute("aria-expanded",open);b.querySelector("span").textContent=open?"See less":"See more";
 }
 
 /* ---------- 3D field metric chips ---------- */
@@ -859,7 +893,7 @@ function renderHero(){
   $("#temp").setAttribute("aria-label",`${tv} degrees`);
   FX.set(fxk,!day,RAINAMT[code]??.5,wk);
   const dd=d.daily,di=dayOf(i);
-  $("#hmeta").innerHTML=`Feels <b class="mono">${r(at("apparent_temperature",i))}°</b> · H <b class="mono">${r(dd.temperature_2m_max[di])}°</b> L <b class="mono">${r(dd.temperature_2m_min[di])}°</b>`;
+  $("#hmeta").innerHTML=`<button type="button" class="lnk" data-sheet="feels">Feels <b class="mono">${r(at("apparent_temperature",i))}°</b></button> · H <b class="mono">${r(dd.temperature_2m_max[di])}°</b> L <b class="mono">${r(dd.temperature_2m_min[di])}°</b>`;
   $("#hrain").textContent=isNow?nowcastSay():`${r(d.hourly.precipitation_probability[i])}% chance of rain`;
   
 }
@@ -996,9 +1030,9 @@ const FX=(()=>{
 })();
 function renderReadout(){
   const i=V.sel,h=V.d.hourly;
-  $("#fread").textContent=`${dayName(i,false)} ${hourLabel(h.time[i])} · ${r(h.temperature_2m[i])}° · ${r(h.precipitation_probability[i])}% rain · ${r(h.wind_speed_10m[i])} ${F()?"mph":"km/h"}`;
+  $("#fread").innerHTML=`${dayName(i,false)} ${hourLabel(h.time[i])} · ${r(h.temperature_2m[i])}° · ${r(h.precipitation_probability[i])}% rain · <button type="button" class="lnk" data-sheet="wind">${r(h.wind_speed_10m[i])} ${F()?"mph":"km/h"}</button>`;
 }
-function renderDock(){METRICS.forEach(m=>put($("#mv-"+m.id),m.s(V.sel)))}
+function renderDock(){GRID.forEach(([id])=>{const m=METRICS.find(x=>x.id===id);put($("#mv-"+id),m.s(V.sel))})}
 function winStart(){const di=dayOf(V.sel);return di===0?V.now:di*24}
 function renderStrip(src){
   const row=$("#row"),h=V.d.hourly;
@@ -1146,6 +1180,9 @@ $("#row").addEventListener("click",e=>{const b=e.target.closest(".col");if(!b)re
 
 /* dock and sheet */
 $("#dock").addEventListener("click",e=>{const b=e.target.closest(".m");if(b)openSheet(b.dataset.id)});
+$("#moreBtn").addEventListener("click",()=>setMore(!$("#more").classList.contains("open")));
+for(const host of["#hero","#fread"])$(host).addEventListener("click",e=>{const b=e.target.closest("[data-sheet]");if(b)openSheet(b.dataset.sheet)});
+$("#hrain").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet("rain")}});
 $("#cityBtn").addEventListener("click",()=>openSheet("places"));
 $("#alertPill").addEventListener("click",()=>openSheet("alerts"));
 $("#samplePill").addEventListener("click",()=>{openSheet("places");showMsg("The weather service couldn't be reached from here, so this is sample data. On your hosted copy, tap refresh.")});
