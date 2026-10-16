@@ -187,9 +187,16 @@ button.lnk{border:0;background:none;padding:0;font:inherit;color:inherit}
 .stage{flex:1;min-height:0;position:relative;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
 .stage:active{cursor:grabbing}
 .stage canvas{display:block;width:100%!important;height:100%!important}
-.fread{position:absolute;left:10px;right:10px;bottom:6px;font-size:11.5px;color:var(--muted);pointer-events:none;}
+/* readout for the selected hour, top left of the graph: small time label, big value, supporting detail */
+.fread{position:absolute;left:12px;top:6px;z-index:1;max-width:calc(100% - 24px);pointer-events:none;color:var(--ink);
+  text-shadow:0 0 8px var(--surface),0 0 3px var(--surface),0 0 1px var(--surface)}
+.fread .when{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+.fread .big{display:flex;align-items:baseline;gap:8px;margin-top:1px;white-space:nowrap}
+.fread .big b{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:.95;letter-spacing:-.01em}
+.fread .big b small{font-size:.48em;font-weight:600;color:var(--muted);margin-left:2px;letter-spacing:0}
+.fread .big span{font-size:13.5px;font-weight:600}
+.fread .sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fread .lnk{pointer-events:auto;color:inherit}
-.fread{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* hours / days strip */
 .strip{flex:none;padding:6px 0 6px}
@@ -212,6 +219,28 @@ button.lnk{border:0;background:none;padding:0;font:inherit;color:inherit}
 .row{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:0 6px;scroll-snap-type:x proximity}
 .col{flex:none;width:46px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;border:0;background:none;border-radius:10px;scroll-snap-align:start}
 .col.d{width:56px}
+/* in Days, the ten columns line up under the date slider and work like it: drag across to move through time, tap for a day */
+.row[data-tab="days"]{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:0;overflow:visible;padding:0 16px;touch-action:none;scroll-snap-type:none;cursor:ew-resize;-webkit-user-select:none;user-select:none}
+.row[data-tab="days"] .col{width:auto;padding:4px 0 3px;border-radius:8px}
+.row[data-tab="days"] .col svg{width:19px;height:19px}
+.row[data-tab="days"] .col .v{font-size:12.5px}
+.row[data-tab="days"] .col .lo{font-size:10.5px}
+/* Hours: two pages of 12, no scrolling. Swipe or tap the dots to change page, tap an hour to pick it */
+.row[data-tab="hours"]{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;overflow:hidden;padding:0 8px;scroll-snap-type:none;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.row[data-tab="hours"] .col{width:auto;padding:4px 0}
+.row[data-tab="hours"] .col .t{font-size:10px;letter-spacing:-.02em}
+.row[data-tab="hours"] .col .v{font-size:12px;letter-spacing:-.03em}
+.row[data-tab="hours"] .col .p{font-size:9.5px}
+.row.sl-l .col{animation:slL .28s cubic-bezier(.2,.8,.2,1)}
+.row.sl-r .col{animation:slR .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes slL{from{transform:translateX(34px);opacity:0}to{transform:none;opacity:1}}
+@keyframes slR{from{transform:translateX(-34px);opacity:0}to{transform:none;opacity:1}}
+.pgdots{display:inline-flex;margin-left:8px;vertical-align:middle;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.pgdots[hidden]{display:none}
+.pgdots button{border:0;background:none;padding:2px 9px;font-size:11px;font-weight:600;letter-spacing:.04em}
+.pgdots button[aria-current="true"]{background:var(--ink);color:var(--bg)}
+.row[data-tab="hours"] .col:disabled{opacity:.3;cursor:default}
+@media (prefers-reduced-motion:reduce){.row .col{animation:none!important}}
 .col .t{font-size:10.5px;color:var(--muted)}
 .col svg{width:20px;height:20px}
 .col .v{font-family:var(--f-mono);font-size:13px}
@@ -312,14 +341,13 @@ select{height:36px;border-radius:10px;border:1px solid var(--line);background:va
       <div class="mchips" id="mchips" role="group" aria-label="Block height shows"></div>
       <button class="ibtn sm" id="reroll" type="button" aria-label="Reroll the field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/></svg></button>
     </div>
-    <div class="stage" id="stage" aria-label="3D chart of the next 10 days, one block per hour. Drag to turn, tap a block."></div>
-    <div class="fread" id="fread"></div>
+    <div class="stage" id="stage" aria-label="3D chart of the next 10 days, one block per hour. Drag to turn, tap a block."><div class="fread" id="fread" aria-live="polite"></div></div>
   </section>
 
   <section class="cell strip">
     <div class="shead">
       <div class="seg" role="group" aria-label="Show"><button type="button" id="tabH" aria-pressed="true">Hours</button><button type="button" id="tabD" aria-pressed="false">Days</button></div>
-      <span class="label" id="slabel">Next 24 hours</span>
+      <span><span class="label" id="slabel">Next 24 hours</span><span class="pgdots" id="pgdots" role="group" aria-label="Page"><button type="button" data-pg="0" aria-label="Morning, midnight to 11am">AM</button><button type="button" data-pg="1" aria-label="Afternoon and evening, noon to 11pm">PM</button></span></span>
     </div>
     <div class="dslider" id="dslider" role="slider" tabindex="0" hidden aria-label="Choose a day in the next 10 days"><div class="rail"></div><div class="fill" id="dfill"></div><div id="dmarks"></div><div class="knob" id="dknob"></div></div>
     <div class="row" id="row"></div>
@@ -359,7 +387,7 @@ window.IsobarField=(function(){
   const mat=new THREE.MeshStandardMaterial({roughness:.62,metalness:0});
   const mesh=new THREE.InstancedMesh(geo,mat,N);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  /* a see-through twin: hours before the selected time move here at 20% opacity, so the rows in front
+  /* a see-through twin: days in front of the selected day move here at 20% opacity, so the rows in front
      are carved away and the selected day and the days behind it stay visible */
   const ghostMat=new THREE.MeshStandardMaterial({roughness:.62,metalness:0,transparent:true,opacity:.2,depthWrite:false});
   const ghost=new THREE.InstancedMesh(geo,ghostMat,N);
@@ -402,7 +430,8 @@ window.IsobarField=(function(){
     humidity:{k:"relative_humidity_2m",lo:0,hi:100,to:"--cool"},uv:{k:"uv_index",lo:0,hi:11,to:"--warm"},
     cloud:{k:"cloud_cover",lo:0,hi:100,to:"--muted"},pressure:{k:"pressure_msl",to:"--accent"},
     visibility:{k:"visibility",lo:0,to:"--accent"},
-    swell:{k:"swell_wave_height",lo:0,hiMin:[8,2.5],to:"--sea"}
+    swell:{k:"swell_wave_height",lo:0,hiMin:[8,2.5],to:"--sea"},
+    tide:{k:"sea_level_height_msl",to:"--sea"}
   };
   function values(){
     const H=data.hourly,arr=H[(MODES[mode]||MODES.temp).k]||[],v=new Array(count);
@@ -519,7 +548,7 @@ window.IsobarField=(function(){
   }
   function fit(y,e,snap){
     if(cam.view&&cam.view.enabled)cam.clearViewOffset();
-    const top=1-2*6/SH,bot=-1+2*24/SH,aw=1.94,ah=top-bot;
+    const top=1-2*Math.min(46,SH*.26)/SH,bot=-1+2*6/SH,aw=1.94,ah=top-bot;
     let lo=snap?4:distT*.75,hi=snap?400:distT*1.35,b;
     for(let k=0;k<(snap?18:9);k++){const m=(lo+hi)/2;b=bounds(y,e,m);if(b[1]-b[0]<=aw&&b[3]-b[2]<=ah)hi=m;else lo=m}
     b=bounds(y,e,hi);
@@ -606,7 +635,7 @@ window.IsobarField=(function(){
       dummy.rotation.set(rx,0,rz);
       dummy.scale.set(.95,Math.max(.03,h[i]*(1+wig)+(i===sel?.25:0)),.8);
       dummy.updateMatrix();
-      const past=sel>=0&&i<sel;
+      const past=sel>=0&&Math.floor(i/COLS)<Math.floor(sel/COLS);
       mesh.setMatrixAt(i,past?HIDE:dummy.matrix);ghost.setMatrixAt(i,past?dummy.matrix:HIDE);
     }
     mesh.instanceMatrix.needsUpdate=true;ghost.instanceMatrix.needsUpdate=true;
@@ -745,19 +774,21 @@ function forecastURL(p){
 /* swell comes from Open-Meteo's separate marine forecast (about 8 days, nearest open water) */
 function marineURL(p){
   const q=new URLSearchParams({latitude:p.lat,longitude:p.lon,timezone:"auto",forecast_days:"8",
-    hourly:"swell_wave_height,swell_wave_period,swell_wave_direction"});
+    hourly:"swell_wave_height,swell_wave_period,swell_wave_direction,sea_level_height_msl"});
   return "https://marine-api.open-meteo.com/v1/marine?"+q;
 }
 /* line the marine hours up with the forecast hours by timestamp; heights in feet or meters to match the units */
 function mergeSwell(d,m){
   const H=d.hourly,n=H.time.length,ft=F();
   H.swell_wave_height=new Array(n).fill(null);H.swell_wave_period=new Array(n).fill(null);H.swell_wave_direction=new Array(n).fill(null);
-  d.hasSwell=false;
+  H.sea_level_height_msl=new Array(n).fill(null);d.hasSwell=false;d.hasTide=false;
   const mh=m&&m.hourly;if(!mh||!mh.time)return d;
   const at={};mh.time.forEach((t,k)=>at[t]=k);
   for(let i=0;i<n;i++){const k=at[H.time[i]];if(k==null)continue;
     const h=mh.swell_wave_height&&mh.swell_wave_height[k];
     if(h!=null){H.swell_wave_height[i]=Math.round((ft?h*3.28084:h)*10)/10;d.hasSwell=true}
+    const tl=mh.sea_level_height_msl&&mh.sea_level_height_msl[k];
+    if(tl!=null){H.sea_level_height_msl[i]=Math.round((ft?tl*3.28084:tl)*100)/100;d.hasTide=true}
     H.swell_wave_period[i]=mh.swell_wave_period?mh.swell_wave_period[k]:null;
     H.swell_wave_direction[i]=mh.swell_wave_direction?mh.swell_wave_direction[k]:null}
   return d;
@@ -792,10 +823,12 @@ function sampleData(){
   const hi=hourly.time.findIndex(t=>t>=isoLocal(now).slice(0,13)+":00");
   const current={time:isoLocal(now),precipitation:0};
   ["temperature_2m","apparent_temperature","relative_humidity_2m","is_day","weather_code","cloud_cover","pressure_msl","wind_speed_10m","wind_direction_10m","wind_gusts_10m","dew_point_2m","uv_index","visibility"].forEach(k=>current[k]=hourly[k][hi]);
+  hourly.sea_level_height_msl=[];
+  for(let i=0;i<240;i++){const m=.9*Math.sin(2*Math.PI*i/12.42+1)+.25*Math.sin(2*Math.PI*i/(24*14.8));hourly.sea_level_height_msl.push(i<192?Math.round((f?m*3.28084:m)*100)/100:null)}
   hourly.swell_wave_height=[];hourly.swell_wave_period=[];hourly.swell_wave_direction=[];
   for(let i=0;i<240;i++){const ok=i<192,m=.6+.5*Math.sin(i/22)+.35*Math.sin(i/7.5)+(i>110&&i<160?.6:0);
     hourly.swell_wave_height.push(ok?Math.round((f?m*3.28084:m)*10)/10:null);hourly.swell_wave_period.push(ok?Math.round(8+3*Math.sin(i/30+1)):null);hourly.swell_wave_direction.push(ok?Math.round(130+25*Math.sin(i/40)):null)}
-  return {current_units:{visibility:"m"},hourly_units:{visibility:"m"},current,hourly,daily,minutely_15:{time:mt,precipitation:mp},hasSwell:true};
+  return {current_units:{visibility:"m"},hourly_units:{visibility:"m"},current,hourly,daily,minutely_15:{time:mt,precipitation:mp},hasSwell:true,hasTide:true};
 }
 
 /* ---------- metric cells ---------- */
@@ -851,7 +884,7 @@ function setMore(open){
 }
 
 /* ---------- 3D field metric chips ---------- */
-const FMODES=[["swell","Swell"],["temp","Temp"],["feels","Feels"],["rain","Rain"],["wind","Wind"],["humidity","Humidity"],["uv","UV"],["cloud","Clouds"],["pressure","Pressure"],["visibility","Visibility"]];
+const FMODES=[["swell","Swell"],["tide","Tide"],["temp","Temp"],["feels","Feels"],["rain","Rain"],["wind","Wind"],["humidity","Humidity"],["uv","UV"],["cloud","Clouds"],["pressure","Pressure"],["visibility","Visibility"]];
 let fmode="temp";
 function setFieldMode(m){
   fmode=m;
@@ -879,8 +912,8 @@ function renderForecast(){
   {const dt=d.daily.time,mo=x=>parse(x+"T12:00").toLocaleDateString([],{month:"short"});
    $("#dmarks").innerHTML=dt.map((t,k)=>{const D=parse(t+"T12:00"),wd=D.getDay(),n=D.getDate();
     return (k?`<div class="dt" style="left:${k*10}%"></div>`:"")+`<div class="dl${wd===0||wd===6?" we":""}" data-day="${k}" style="left:${k*10+5}%">${k===0?"Today":D.toLocaleDateString([],{weekday:"short"})}<b>${n}</b></div>`}).join("")}
-  {const sb=$('#mchips button[data-m="swell"]');if(sb)sb.hidden=!d.hasSwell;
-   if(!d.hasSwell&&fmode==="swell")setFieldMode("temp")}
+  {const sb=$('#mchips button[data-m="swell"]'),tb=$('#mchips button[data-m="tide"]');if(sb)sb.hidden=!d.hasSwell;if(tb)tb.hidden=!d.hasTide;
+   if((!d.hasSwell&&fmode==="swell")||(!d.hasTide&&fmode==="tide"))setFieldMode("temp")}
   if(Field)Field.setData(d,{F:f,windSpeed:c.wind_speed_10m,windDir:c.wind_direction_10m,rainNow:c.precipitation,kind:wmo(c.weather_code)[1]});
   else $("#fieldCard").hidden=true;
   setSel(V.now,"load");
@@ -1058,35 +1091,61 @@ const FX=(()=>{
   };
 })();
 function renderReadout(){
-  const i=V.sel,h=V.d.hourly;
-  if(fmode==="swell"&&V.d.hasSwell){const sh=h.swell_wave_height[i],sp=h.swell_wave_period[i],sd=h.swell_wave_direction[i];
-    $("#fread").textContent=sh==null?`${dayName(i,false)} ${hourLabel(h.time[i])} · No swell forecast this far out (it covers about 8 days)`
-      :`${dayName(i,false)} ${hourLabel(h.time[i])} · Swell ${sh.toFixed(1)} ${F()?"ft":"m"}${sp!=null?` · ${Math.round(sp)} s`:""}${sd!=null?` · from ${dir(sd)}`:""}`;
-    return}
-  $("#fread").innerHTML=`${dayName(i,false)} ${hourLabel(h.time[i])} · ${r(h.temperature_2m[i])}° · ${r(h.precipitation_probability[i])}% rain · <button type="button" class="lnk" data-sheet="wind">${r(h.wind_speed_10m[i])} ${F()?"mph":"km/h"}</button>`;
+  const i=V.sel,h=V.d.hourly,u=F(),name=(FMODES.find(x=>x[0]===fmode)||["",""])[1];
+  const [cond]=wmo(at("weather_code",i)),rain=r(h.precipitation_probability[i]),ws=r(at("wind_speed_10m",i)),wu=u?"mph":"km/h";
+  const wind=`<button type="button" class="lnk" data-sheet="wind">${ws} ${wu}</button>`;
+  const M=id=>METRICS.find(x=>x.id===id);
+  let big,side="",sub;
+  switch(fmode){
+    case"swell":{const sh=at("swell_wave_height",i),sp=at("swell_wave_period",i),sd=at("swell_wave_direction",i);
+      if(sh==null){big="--";sub="The swell forecast covers about 8 days"}
+      else{big=`${sh.toFixed(1)}<small>${u?"ft":"m"}</small>`;side=sp!=null?`${Math.round(sp)} s`:"";sub=sd!=null?`From the ${dir(sd)}${sp!=null?` · ${Math.round(sp)}-second period`:""}`:""}
+      break}
+    case"tide":{const T=h.sea_level_height_msl,v=T[i],fu=u?"ft":"m";
+      if(v==null){big="--";sub="The tide forecast covers about 8 days";break}
+      const prev=T[i-1],nxt=T[i+1],up=nxt!=null?nxt>v:prev!=null?v>prev:true;
+      let j=i;while(T[j+1]!=null&&(up?T[j+1]>=T[j]:T[j+1]<=T[j])&&j<i+14)j++;
+      big=`${v>=0?"+":"−"}${Math.abs(v).toFixed(1)}<small>${fu}</small>`;side=up?"Rising":"Falling";
+      sub=j>i&&T[j]!=null?`${up?"High":"Low"} at ${hourLabel(h.time[j])} · ${T[j]>=0?"+":"−"}${Math.abs(T[j]).toFixed(1)} ${fu}`:`Relative to mean sea level`;break}
+    case"temp":big=`${r(at("temperature_2m",i))}°`;side=cond;sub=`${rain}% rain · ${wind}`;break;
+    case"feels":big=`${r(at("apparent_temperature",i))}°`;side=`Air ${r(at("temperature_2m",i))}°`;sub=M("feels").n(i);break;
+    case"rain":big=`${rain}<small>%</small>`;side=cond;sub=i===V.now?nowcastSay():"Chance of rain this hour";break;
+    case"wind":big=`${ws}<small>${wu}</small>`;side=`from ${dir(at("wind_direction_10m",i))}`;sub=`Gusting to ${r(at("wind_gusts_10m",i))} ${wu}`;break;
+    case"humidity":big=`${r(at("relative_humidity_2m",i))}<small>%</small>`;side=cond;sub=M("humidity").n(i);break;
+    case"uv":big=`${r(at("uv_index",i))}`;side="UV index";sub=M("uv").n(i);break;
+    case"cloud":big=`${r(at("cloud_cover",i))}<small>%</small>`;side=cond;sub=M("cloud").n(i);break;
+    case"pressure":big=M("pressure").v(i);sub=M("pressure").n(i);break;
+    case"visibility":big=M("visibility").v(i);sub=M("visibility").n(i);break;
+    default:big=`${r(at("temperature_2m",i))}°`;side=cond;sub=`${rain}% rain · ${wind}`;
+  }
+  $("#fread").innerHTML=`<div class="when">${dayName(i,false)} ${hourLabel(h.time[i])} · ${name}</div><div class="big"><b>${big}</b>${side?`<span>${side}</span>`:""}</div>${sub?`<div class="sub">${sub}</div>`:""}`;
 }
 function renderDock(){GRID.forEach(([id])=>{const m=METRICS.find(x=>x.id===id);put($("#mv-"+id),m.s(V.sel))})}
 function winStart(){const di=dayOf(V.sel);return di===0?V.now:di*24}
 function renderStrip(src){
   const row=$("#row"),h=V.d.hourly;
   if(V.tab==="hours"){
-    const ws=winStart();
-    if(ws!==V.win||row.dataset.tab!=="hours"){
-      V.win=ws;row.dataset.tab="hours";
-      const idx=[...Array(24)].map((_,k)=>ws+k).filter(x=>x<h.time.length);
+    const ws=dayOf(V.sel)*24,PG=12;
+    if(ws!==V.win||row.dataset.tab!=="hours"){V.win=ws;V.page=Math.max(0,Math.min(1,Math.floor((V.sel-ws)/PG)));V.pgKey=""}
+    else if(src!=="page"){const want=Math.max(0,Math.min(1,Math.floor((V.sel-ws)/PG)));if(want!==V.page){V.slide=want>V.page?"sl-l":"sl-r";V.page=want}}
+    const key=ws+":"+V.page;
+    if(key!==V.pgKey){
+      V.pgKey=key;row.dataset.tab="hours";
+      const idx=[...Array(PG)].map((_,k)=>ws+V.page*PG+k).filter(x=>x<h.time.length);
       row.innerHTML=idx.map(x=>{const[,kd]=wmo(h.weather_code[x]),pp=h.precipitation_probability[x]??0;
-        return `<button type="button" class="col${x===V.now?" now":""}" data-i="${x}"><span class="t">${x===V.now?"now":hourLabel(h.time[x])}</span><svg viewBox="0 0 24 24">${icon(kd,!!h.is_day[x])}</svg><span class="v">${r(h.temperature_2m[x])}°</span><span class="p">${pp>=20?pp+"%":""}</span></button>`}).join("");
-      row.scrollLeft=0;
-      $("#slabel").textContent=dayOf(ws)===0?"Next 24 hours":`${dayName(ws,true)}`;
+        return `<button type="button" class="col${x===V.now?" now":""}" data-i="${x}"${x<V.now?" disabled":""}><span class="t">${x===V.now?"now":hourLabel(h.time[x])}</span><svg viewBox="0 0 24 24">${icon(kd,!!h.is_day[x])}</svg><span class="v">${r(h.temperature_2m[x])}°</span><span class="p">${pp>=20?pp+"%":""}</span></button>`}).join("");
+      row.classList.remove("sl-l","sl-r");if(V.slide&&!reduce){void row.offsetWidth;row.classList.add(V.slide)}V.slide="";
     }
+    $("#slabel").textContent=dayName(ws,true);
+    $("#pgdots").hidden=false;$("#pgdots").querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",+b.dataset.pg===V.page));
   }else if(row.dataset.tab!=="days"){
     row.dataset.tab="days";V.win=-1;
     const dd=V.d.daily;
     row.innerHTML=dd.time.map((t,k)=>{const[lb,kd]=wmo(dd.weather_code[k]),pp=dd.precipitation_probability_max[k];
-      return `<button type="button" class="col d" data-day="${k}"><span class="t">${k===0?"Today":parse(t+"T12:00").toLocaleDateString([], {weekday:"short"})}</span><svg viewBox="0 0 24 24" aria-label="${lb}">${icon(kd,true)}</svg><span class="v">${r(dd.temperature_2m_max[k])}°</span><span class="lo">${r(dd.temperature_2m_min[k])}°</span><span class="p">${pp>=20?pp+"%":""}</span></button>`}).join("");
+      return `<button type="button" class="col d" data-day="${k}" aria-label="${k===0?"Today":parse(t+"T12:00").toLocaleDateString([], {weekday:"long"})}, ${lb}"><svg viewBox="0 0 24 24" aria-label="${lb}">${icon(kd,true)}</svg><span class="v">${r(dd.temperature_2m_max[k])}°</span><span class="lo">${r(dd.temperature_2m_min[k])}°</span><span class="p">${pp>=20?pp+"%":""}</span></button>`}).join("");
     $("#slabel").textContent="Next 10 days";
   }
-  const ds=$("#dslider");ds.hidden=V.tab!=="days";
+  const ds=$("#dslider");ds.hidden=V.tab!=="days";if(V.tab==="days")$("#pgdots").hidden=true;
   if(V.tab==="days"){const k=dayOf(V.sel),pc=V.sel/(V.count-1)*100;
     $("#dknob").style.left=pc+"%";$("#dfill").style.width=pc+"%";
     ds.querySelectorAll(".dl").forEach(e=>e.classList.toggle("sel",+e.dataset.day===k));
@@ -1095,7 +1154,6 @@ function renderStrip(src){
   const key=V.tab==="hours"?"i":"day",val=V.tab==="hours"?V.sel:dayOf(V.sel);
   let on=null;
   row.querySelectorAll(".col").forEach(b=>{const s=+b.dataset[key]===val;b.classList.toggle("sel",s);if(s)on=b});
-  if(on&&src!=="strip"){const l=on.offsetLeft-row.offsetLeft;if(l<row.scrollLeft||l+on.offsetWidth>row.scrollLeft+row.clientWidth)row.scrollTo({left:Math.max(0,l-row.clientWidth/2+on.offsetWidth/2),behavior:reduce?"auto":"smooth"})}
 }
 
 /* ---------- bottom sheet ---------- */
@@ -1201,20 +1259,41 @@ $("#backNow").addEventListener("click",()=>setSel(V.now,"tap"));
 /* hours / days strip */
 function setTab(t){V.tab=t;$("#tabH").setAttribute("aria-pressed",t==="hours");$("#tabD").setAttribute("aria-pressed",t==="days");$("#row").dataset.tab="";if(V.d)renderStrip()}
 $("#tabH").addEventListener("click",()=>setTab("hours"));$("#tabD").addEventListener("click",()=>setTab("days"));
+/* a day starts at 8am (today starts now), so its whole row of bars stays in view */
+const dayStart=k=>k<=0?V.now:k*24+8;
+const pickDay=k=>setSel(dayStart(Math.max(0,Math.min(V.d.daily.time.length-1,k))),"day");
+/* the date slider and the day columns scrub the same way: drag to move hour by hour, tap to jump to a day */
+function scrubber(el,box,onTap){
+  let d=null;
+  const frac=e=>{const[l,r]=box();return Math.max(0,Math.min(1,(e.clientX-l)/((r-l)||1)))};
+  el.addEventListener("pointerdown",e=>{if(!V.d||V.tab!=="days")return;d={x:e.clientX,id:e.pointerId,moved:false}});
+  el.addEventListener("pointermove",e=>{if(!d||e.pointerId!==d.id)return;
+    if(!d.moved&&Math.abs(e.clientX-d.x)>5){d.moved=true;el._dragged=true;try{el.setPointerCapture(e.pointerId)}catch(_){}}
+    if(d.moved)setSel(Math.round(frac(e)*(V.count-1)),"scrub")});
+  el.addEventListener("pointerup",e=>{if(d&&!d.moved&&onTap)onTap(Math.floor(frac(e)*V.d.daily.time.length));d=null});
+  el.addEventListener("pointercancel",()=>{d=null});
+}
 {const ds=$("#dslider");
- const di=e=>{const rc=ds.getBoundingClientRect();return Math.round(Math.max(0,Math.min(1,(e.clientX-rc.left)/rc.width))*(V.count-1))};
- ds.addEventListener("pointerdown",e=>{try{ds.setPointerCapture(e.pointerId)}catch(_){};setSel(di(e),"scrub");ds._d=true});
- ds.addEventListener("pointermove",e=>{if(ds._d)setSel(di(e),"scrub")});
- ["pointerup","pointercancel"].forEach(t=>ds.addEventListener(t,()=>{ds._d=false}));
- ds.addEventListener("keydown",e=>{const st={ArrowRight:24,ArrowUp:24,ArrowLeft:-24,ArrowDown:-24}[e.key];if(st){e.preventDefault();setSel(V.sel+st,"scrub")}})}
+ scrubber(ds,()=>{const rc=ds.getBoundingClientRect();return[rc.left,rc.right]},pickDay);
+ ds.addEventListener("keydown",e=>{const st={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1}[e.key];if(st){e.preventDefault();pickDay(dayOf(V.sel)+st)}})}
+{const row=$("#row");
+ scrubber(row,()=>{const c=row.querySelectorAll(".col.d");if(!c.length){const rc=row.getBoundingClientRect();return[rc.left,rc.right]}return[c[0].getBoundingClientRect().left,c[c.length-1].getBoundingClientRect().right]},null)}
+function setPage(n,dirHint){if(!V.d||V.tab!=="hours")return;n=Math.max(0,Math.min(1,n));if(n===V.page)return;V.slide=n>V.page?"sl-l":"sl-r";V.page=n;renderStrip("page")}
+$("#pgdots").addEventListener("click",e=>{const b=e.target.closest("button[data-pg]");if(b)setPage(+b.dataset.pg)});
+{const row=$("#row");let sw=null;
+ row.addEventListener("pointerdown",e=>{row._dragged=false;if(V.tab==="hours")sw={x:e.clientX,y:e.clientY}});
+ row.addEventListener("pointerup",e=>{if(!sw)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y;sw=null;
+   if(Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)*1.3){row._dragged=true;setPage(V.page+(dx<0?1:-1))}});
+ row.addEventListener("pointercancel",()=>{sw=null})}
 $("#row").addEventListener("click",e=>{const b=e.target.closest(".col");if(!b)return;
   if(b.dataset.i!=null)setSel(+b.dataset.i,"strip");
-  else{const di=+b.dataset.day,hod=V.sel%24;setSel(di===0?Math.max(V.now,hod):di*24+(dayOf(V.sel)===0?12:hod),"day")}});
+  else{const r=$("#row");if(r._dragged){r._dragged=false;return}pickDay(+b.dataset.day)}});
 
 /* dock and sheet */
 $("#dock").addEventListener("click",e=>{const b=e.target.closest(".m");if(b)openSheet(b.dataset.id)});
 $("#moreBtn").addEventListener("click",()=>setMore(!$("#more").classList.contains("open")));
 for(const host of["#hero","#fread"])$(host).addEventListener("click",e=>{const b=e.target.closest("[data-sheet]");if(b)openSheet(b.dataset.sheet)});
+$("#fread").addEventListener("pointerdown",e=>{if(e.target.closest(".lnk"))e.stopPropagation()}); // a tap on the wind link isn't a tap on the bars behind it
 $("#hrain").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSheet("rain")}});
 $("#cityBtn").addEventListener("click",()=>openSheet("places"));
 $("#alertPill").addEventListener("click",()=>openSheet("alerts"));
