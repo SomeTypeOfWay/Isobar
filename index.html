@@ -22,10 +22,11 @@
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-/* Layout: one phone screen, no page scroll. Top bar, a now-card with 3D animated type and the 5x2 metric grid, the 3D field takes the leftover height, an Hours/Days strip; detail lives in a bottom sheet */
+/* Data: Open-Meteo forecast + air quality + marine (swell), NWS alerts for US places.
+   Layout: one phone screen, no page scroll. Top bar, a now-card with 3D animated type and the 5x2 metric grid, the 3D field takes the leftover height, an Hours/Days strip; detail lives in a bottom sheet */
 :root{
   --bg:#edf1f3;--surface:#ffffff;--surface-2:#f4f7f8;--ink:#13202a;--muted:#55656f;--line:#d5dde2;
-  --accent:#1d6b95;--cool:#4b8fc0;--warm:#d0702c;--mid:#b9c7cf;--wind:#2f8a78;
+  --accent:#1d6b95;--cool:#4b8fc0;--warm:#d0702c;--mid:#b9c7cf;--wind:#2f8a78;--sea:#0f7f8c;
   --danger-bg:#fbe3df;--danger-ink:#8f2417;--warn-bg:#fbefd2;--warn-ink:#7a4d05;--info-bg:#dfedf6;--info-ink:#174a6b;
   --good:#2f7d3b;--fair:#9a7a06;--bad:#b04317;--scrim:rgba(19,32,42,.18);
   --mood-clear:#fbe6b0;--mood-night:#d8ddef;--mood-cloud:#dde5ea;--mood-rain:#cddfee;--mood-snow:#e8eff6;--mood-storm:#dcd4ef;
@@ -36,14 +37,14 @@ img{max-width:100%}
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0d1317;--surface:#141c21;--surface-2:#1a242a;--ink:#e5ecf0;--muted:#93a2ab;--line:#28343b;
-  --accent:#7ec3e8;--cool:#6aa9d6;--warm:#eb945a;--mid:#5d6c75;--wind:#6cc7b2;
+  --accent:#7ec3e8;--cool:#6aa9d6;--warm:#eb945a;--mid:#5d6c75;--wind:#6cc7b2;--sea:#5fc9d4;
   --danger-bg:#3d1712;--danger-ink:#ffb4a6;--warn-bg:#3a2a08;--warn-ink:#f6cf78;--info-bg:#112b3c;--info-ink:#a6d4f0;
   --good:#7fcf8a;--fair:#e5c54e;--bad:#f2905f;--scrim:rgba(0,0,0,.4);
   --mood-clear:#3a2f14;--mood-night:#1a2036;--mood-cloud:#202a30;--mood-rain:#13283a;--mood-snow:#253240;--mood-storm:#28203e;--storm:#a58cf0;--shade:#000;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0d1317;--surface:#141c21;--surface-2:#1a242a;--ink:#e5ecf0;--muted:#93a2ab;--line:#28343b;
-  --accent:#7ec3e8;--cool:#6aa9d6;--warm:#eb945a;--mid:#5d6c75;--wind:#6cc7b2;
+  --accent:#7ec3e8;--cool:#6aa9d6;--warm:#eb945a;--mid:#5d6c75;--wind:#6cc7b2;--sea:#5fc9d4;
   --danger-bg:#3d1712;--danger-ink:#ffb4a6;--warn-bg:#3a2a08;--warn-ink:#f6cf78;--info-bg:#112b3c;--info-ink:#a6d4f0;
   --good:#7fcf8a;--fair:#e5c54e;--bad:#f2905f;--scrim:rgba(0,0,0,.4);
   --mood-clear:#3a2f14;--mood-night:#1a2036;--mood-cloud:#202a30;--mood-rain:#13283a;--mood-snow:#253240;--mood-storm:#28203e;--storm:#a58cf0;--shade:#000;
@@ -400,7 +401,8 @@ window.IsobarField=(function(){
     rain:{k:"precipitation_probability",lo:0,hi:100,to:"--cool"},wind:{k:"wind_speed_10m",lo:0,hiMin:[25,40],to:"--wind"},
     humidity:{k:"relative_humidity_2m",lo:0,hi:100,to:"--cool"},uv:{k:"uv_index",lo:0,hi:11,to:"--warm"},
     cloud:{k:"cloud_cover",lo:0,hi:100,to:"--muted"},pressure:{k:"pressure_msl",to:"--accent"},
-    visibility:{k:"visibility",lo:0,to:"--accent"}
+    visibility:{k:"visibility",lo:0,to:"--accent"},
+    swell:{k:"swell_wave_height",lo:0,hiMin:[8,2.5],to:"--sea"}
   };
   function values(){
     const H=data.hourly,arr=H[(MODES[mode]||MODES.temp).k]||[],v=new Array(count);
@@ -740,6 +742,27 @@ function forecastURL(p){
   return "https://api.open-meteo.com/v1/forecast?"+q;
 }
 
+/* swell comes from Open-Meteo's separate marine forecast (about 8 days, nearest open water) */
+function marineURL(p){
+  const q=new URLSearchParams({latitude:p.lat,longitude:p.lon,timezone:"auto",forecast_days:"8",
+    hourly:"swell_wave_height,swell_wave_period,swell_wave_direction"});
+  return "https://marine-api.open-meteo.com/v1/marine?"+q;
+}
+/* line the marine hours up with the forecast hours by timestamp; heights in feet or meters to match the units */
+function mergeSwell(d,m){
+  const H=d.hourly,n=H.time.length,ft=F();
+  H.swell_wave_height=new Array(n).fill(null);H.swell_wave_period=new Array(n).fill(null);H.swell_wave_direction=new Array(n).fill(null);
+  d.hasSwell=false;
+  const mh=m&&m.hourly;if(!mh||!mh.time)return d;
+  const at={};mh.time.forEach((t,k)=>at[t]=k);
+  for(let i=0;i<n;i++){const k=at[H.time[i]];if(k==null)continue;
+    const h=mh.swell_wave_height&&mh.swell_wave_height[k];
+    if(h!=null){H.swell_wave_height[i]=Math.round((ft?h*3.28084:h)*10)/10;d.hasSwell=true}
+    H.swell_wave_period[i]=mh.swell_wave_period?mh.swell_wave_period[k]:null;
+    H.swell_wave_direction[i]=mh.swell_wave_direction?mh.swell_wave_direction[k]:null}
+  return d;
+}
+
 /* ---------- sample data (only when the API can't be reached) ---------- */
 function sampleData(){
   const f=F(),now=new Date();now.setMinutes(Math.floor(now.getMinutes()/15)*15,0,0);
@@ -769,7 +792,10 @@ function sampleData(){
   const hi=hourly.time.findIndex(t=>t>=isoLocal(now).slice(0,13)+":00");
   const current={time:isoLocal(now),precipitation:0};
   ["temperature_2m","apparent_temperature","relative_humidity_2m","is_day","weather_code","cloud_cover","pressure_msl","wind_speed_10m","wind_direction_10m","wind_gusts_10m","dew_point_2m","uv_index","visibility"].forEach(k=>current[k]=hourly[k][hi]);
-  return {current_units:{visibility:"m"},hourly_units:{visibility:"m"},current,hourly,daily,minutely_15:{time:mt,precipitation:mp}};
+  hourly.swell_wave_height=[];hourly.swell_wave_period=[];hourly.swell_wave_direction=[];
+  for(let i=0;i<240;i++){const ok=i<192,m=.6+.5*Math.sin(i/22)+.35*Math.sin(i/7.5)+(i>110&&i<160?.6:0);
+    hourly.swell_wave_height.push(ok?Math.round((f?m*3.28084:m)*10)/10:null);hourly.swell_wave_period.push(ok?Math.round(8+3*Math.sin(i/30+1)):null);hourly.swell_wave_direction.push(ok?Math.round(130+25*Math.sin(i/40)):null)}
+  return {current_units:{visibility:"m"},hourly_units:{visibility:"m"},current,hourly,daily,minutely_15:{time:mt,precipitation:mp},hasSwell:true};
 }
 
 /* ---------- metric cells ---------- */
@@ -825,13 +851,14 @@ function setMore(open){
 }
 
 /* ---------- 3D field metric chips ---------- */
-const FMODES=[["temp","Temp"],["feels","Feels"],["rain","Rain"],["wind","Wind"],["humidity","Humidity"],["uv","UV"],["cloud","Clouds"],["pressure","Pressure"],["visibility","Visibility"]];
+const FMODES=[["swell","Swell"],["temp","Temp"],["feels","Feels"],["rain","Rain"],["wind","Wind"],["humidity","Humidity"],["uv","UV"],["cloud","Clouds"],["pressure","Pressure"],["visibility","Visibility"]];
 let fmode="temp";
 function setFieldMode(m){
   fmode=m;
   document.querySelectorAll("#mchips button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===m));
   const b=document.querySelector(`#mchips button[data-m="${m}"]`);if(b){const row=$("#mchips");row.scrollTo({left:Math.max(0,b.offsetLeft-row.clientWidth/2),behavior:reduce?"auto":"smooth"})}
   if(Field)Field.setMode(m);
+  if(V.d)renderReadout();
   document.querySelectorAll("#dock .m").forEach(x=>x.classList.toggle("on",(METRICS.find(y=>y.id===x.dataset.id)||{}).mode===m));
 }
 
@@ -852,6 +879,8 @@ function renderForecast(){
   {const dt=d.daily.time,mo=x=>parse(x+"T12:00").toLocaleDateString([],{month:"short"});
    $("#dmarks").innerHTML=dt.map((t,k)=>{const D=parse(t+"T12:00"),wd=D.getDay(),n=D.getDate();
     return (k?`<div class="dt" style="left:${k*10}%"></div>`:"")+`<div class="dl${wd===0||wd===6?" we":""}" data-day="${k}" style="left:${k*10+5}%">${k===0?"Today":D.toLocaleDateString([],{weekday:"short"})}<b>${n}</b></div>`}).join("")}
+  {const sb=$('#mchips button[data-m="swell"]');if(sb)sb.hidden=!d.hasSwell;
+   if(!d.hasSwell&&fmode==="swell")setFieldMode("temp")}
   if(Field)Field.setData(d,{F:f,windSpeed:c.wind_speed_10m,windDir:c.wind_direction_10m,rainNow:c.precipitation,kind:wmo(c.weather_code)[1]});
   else $("#fieldCard").hidden=true;
   setSel(V.now,"load");
@@ -1030,6 +1059,10 @@ const FX=(()=>{
 })();
 function renderReadout(){
   const i=V.sel,h=V.d.hourly;
+  if(fmode==="swell"&&V.d.hasSwell){const sh=h.swell_wave_height[i],sp=h.swell_wave_period[i],sd=h.swell_wave_direction[i];
+    $("#fread").textContent=sh==null?`${dayName(i,false)} ${hourLabel(h.time[i])} · No swell forecast this far out (it covers about 8 days)`
+      :`${dayName(i,false)} ${hourLabel(h.time[i])} · Swell ${sh.toFixed(1)} ${F()?"ft":"m"}${sp!=null?` · ${Math.round(sp)} s`:""}${sd!=null?` · from ${dir(sd)}`:""}`;
+    return}
   $("#fread").innerHTML=`${dayName(i,false)} ${hourLabel(h.time[i])} · ${r(h.temperature_2m[i])}° · ${r(h.precipitation_probability[i])}% rain · <button type="button" class="lnk" data-sheet="wind">${r(h.wind_speed_10m[i])} ${F()?"mph":"km/h"}</button>`;
 }
 function renderDock(){GRID.forEach(([id])=>{const m=METRICS.find(x=>x.id===id);put($("#mv-"+id),m.s(V.sel))})}
@@ -1231,17 +1264,17 @@ async function load(force){
   if(Field&&lastPlaceKey&&pk!==lastPlaceKey)Field.reroll();
   lastPlaceKey=pk;
   $("#pname").textContent=p.name;$("#hero").classList.add("skeleton");
-  const key=`isobar.cache2.${pk}.${S.units}.${S.model}`;
+  const key=`isobar.cache3.${pk}.${S.units}.${S.model}`;
   const cached=store.get(key,null);
   const apply=(d,aq,al,sample)=>{V.d=d;V.aq=aq;V.al=al||[];V.sample=sample;$("#hero").classList.remove("skeleton");renderForecast()};
   if(cached&&!force&&Date.now()-cached.at<10*60e3){apply(cached.d,cached.aq,cached.al,false);return}
   const aqURL=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${p.lat}&longitude=${p.lon}&current=us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide&timezone=auto`;
   const alURL=`https://api.weather.gov/alerts/active?point=${p.lat.toFixed(4)},${p.lon.toFixed(4)}`;
-  const [fr,ar,lr]=await Promise.allSettled([getJSON(forecastURL(p)),getJSON(aqURL),(!p.cc||p.cc==="US")?getJSON(alURL):Promise.resolve(null)]);
+  const [fr,ar,lr,mr]=await Promise.allSettled([getJSON(forecastURL(p)),getJSON(aqURL),(!p.cc||p.cc==="US")?getJSON(alURL):Promise.resolve(null),getJSON(marineURL(p))]);
   if(id!==loadId)return;
   const aq=ar.status==="fulfilled"?ar.value:null;
   const al=lr.status==="fulfilled"&&lr.value&&lr.value.features?lr.value.features.map(f=>f.properties):[];
-  if(fr.status==="fulfilled"&&fr.value&&fr.value.current&&fr.value.hourly){apply(fr.value,aq,al,false);store.set(key,{at:Date.now(),d:fr.value,aq,al})}
+  if(fr.status==="fulfilled"&&fr.value&&fr.value.current&&fr.value.hourly){mergeSwell(fr.value,mr.status==="fulfilled"?mr.value:null);apply(fr.value,aq,al,false);store.set(key,{at:Date.now(),d:fr.value,aq,al})}
   else if(cached){apply(cached.d,cached.aq,cached.al,false)}
   else apply(sampleData(),null,[],true);
 }
